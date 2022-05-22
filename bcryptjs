@@ -1,0 +1,101 @@
+npm install bcryptjs  npm i jasonwebtoken 
+
+use= encrypt password before save in DB
+1. create encrypted password
+2. compare password on login
+// user create -------------------------------------------------
+router.post('/create',(req,res)=>{
+    let user= req.body;
+       
+      bcryptjs.hash(user.password,10,(err,newpassword)=>{
+       user.password=newpassword;
+        let userObj= new userModel(user);
+        userObj.save()
+               .then((response)=>{
+                  res.status(200)
+                     .json({
+                        message:"user created with encrypted password",
+                        result:response
+                     })
+               })
+               .catch(err=>console.log(err))
+      })  
+   })
+  
+    //---- login with encrypted password   and create jwt token on login   ----------------------------------------
+router.post("/login",(req,res)=>{
+    let userCred =  req.body;
+    let {username}=userCred;
+    // mongoose 
+    userModel.findOne({username:userCred.username})
+    .then((user)=>{
+        if(user!=null){
+           // compare encrypted password
+            bcryptjs.compare(userCred.password,user.password,(err,status)=>{
+                if(status===true){
+                    jwt.sign({username},"secretkey",{expiresIn:'1h'},(err,token)=>{
+                       if(err===null){
+                            res
+                            .status(201)
+                            .json({
+                               message:"welcome user",
+                               token:token,
+                               result:user
+                            })      
+                       }
+                    })
+                }
+                else{
+                    res.send({message:"password not match"})
+                 }
+            })
+        }else{
+            res.send({message:"user not found"})
+        }
+    }).catch((err)=>{
+        console.log(err);
+        res.send({message:"some prob"})
+    })
+ }) 
+ 
+ //------------- route with jwt authorization----------------------
+   //------- put api------------------------------------------------------------
+   router.put('/updateuser/:id',verifytoken,(req,res)=>{
+      let id= req.params.id;
+      let updata= req.body;
+      //mongoose method for update
+      userModel.updateOne({_id:id},updata)
+      .then((response)=>{
+         res.status(200)
+         .json({
+            message:"updated",
+            result:response
+         })
+      })
+      .catch(err=>console.log(err))
+   })
+   //----------------------------------------------------------------------------------
+   custom middleware for jwt verification
+   const jwt = require('jsonwebtoken');
+//-----custom middleware for token verification-----
+function verifytoken(req,res,next){
+    if(req.headers.authorization !=undefined){
+       let token= req.headers.authorization.split(" ")[1];
+       // userCred is return any user if required
+       jwt.verify(token,"secretkey",(err,userCred)=>{
+          if(err===null){
+                next();            
+          }else{
+             res.status(401).send({ message: "invalid token"})      
+          }
+       })
+    }else{
+       res.status(403).send({ message:"please authenticate"})
+    }
+ }
+ module.exports= verifytoken;
+   
+ 
+ 
+ 
+ 
