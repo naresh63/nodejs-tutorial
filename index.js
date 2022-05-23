@@ -1,10 +1,10 @@
-server page
+require('dotenv').config()
 const express = require('express');
 const cors = require('cors');
 const bcryptjs = require('bcryptjs');
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
-require('./config');
+require('./db');
 // custom 
 const userRouter=require('./controllers/user-route');
 const adminRouter= require('./controllers/admin-route')
